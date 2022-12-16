@@ -1,17 +1,20 @@
+const urlActuelle = window.location.href;
+const idProduit = getUrlParametre(urlActuelle, "id");
+const urlApiProduit = `http://localhost:3000/api/products/${idProduit}`;
+
 // Un seul bloc imbriquant l'image produit est présent dans la page.
 // En l'état actuel, le sélecteur de ce bloc sera donc le premier noeud possédant
 // la classe "item__img"
 const nodeImageProduit = document.getElementsByClassName('item__img')[0];
+
+// Idem pour le sélecteur de noeuds par nom
+const nodeQuantity = document.getElementsByName("itemQuantity")[0];
 
 const nodeTitreProduit = document.getElementById('title');
 const nodePrixProduit = document.getElementById('price');
 const nodeDescriptionProduit = document.getElementById('description');
 const nodeSelectBoxCouleurProduit = document.getElementById('colors');
 const nodeButtonAddToCart = document.getElementById('addToCart');
-
-const nodeQuantity = document.getElementsByName("itemQuantity");
-
-const urlActuelle = window.location.href;
 
 function getUrlParametre(url, parametre){
     let urlObject = new URL(url);
@@ -32,12 +35,11 @@ function appendProductInfosToPage(objetProduit){
     }
 }
 
-async function getInfosProduit(id) {
-    let reponse = await fetch(`http://localhost:3000/api/products/${id}`);
+async function callApi(url) {
+    let reponse = await fetch(url);
 
     if (reponse.ok) {
         let resultat = await reponse.json();
-        console.log(resultat);
         return resultat;
     }
     else {
@@ -45,55 +47,46 @@ async function getInfosProduit(id) {
     }
 }
 
-function creerArticlePanier(id, couleur, quantite, panier){
-    return panier[`${id}-${couleur}`] = {
-        'id' : id,
-        'couleur' : couleur,
-        'quantite' : quantite
-    };
-}
+function ajouterArticle(idArticle, couleurArticle, quantiteArticle) {
+    let panier = JSON.parse(localStorage.getItem('panier')) === null ? localStorage.setItem('panier', JSON.stringify(new Object)) : JSON.parse(localStorage.getItem('panier'));
+    let idUnique = `${idProduit}-${couleurChoisie}`;
+    console.log(panier);
 
-function checkArticlesPanier(id, couleur, panier){
-    for(article of panier){
-        if(article.id === id && article.couleur === couleur){
-            return true;
-        }
-    }
-    return false;
-}
-
-function ajoutPanier(id) {
-    let couleurChoisie = nodeSelectBoxCouleurProduit.value;
-    let quantiteChoisie = nodeQuantity.value;
-
-    if(couleurChoisie === "" || quantiteChoisie === "0") {
-        return window.alert('Merci de sélectionner une couleur et une quantité de canapé.');
-    }
-
-    let panier = localStorage.getItem('panier');
-
-    if(panier === null) {
-        panier = localStorage.setItem('panier', {});
-        creerArticlePanier(id, couleurChoisie, quantiteChoisie, panier);
+    if(panier[idUnique]) {
+        panier[idUnique].quantite = panier[idUnique].quantite + quantiteArticle;
     }
     else{
-        if (checkArticlesPanier(id, couleurChoisie, panier) === true){
-            panier[`${id}-${couleurChoisie}`].quantite = panier[`${id}-${couleurChoisie}`].quantite + quantiteChoisie;
-        }
-        else{
-            creerArticlePanier(id, couleurChoisie, quantiteChoisie, panier);
-        }
+        let entree = {};
+        entree = {
+                [idUnique]: {
+                "id": idArticle,
+                "couleur": couleurArticle,
+                "quantite": quantiteArticle
+            }
+        };
+        localStorage.setItem('panier', entree);
+        console.log(panier[idArticle]);
     }
     console.log(panier);
 }
 
 nodeButtonAddToCart.disabled = true;
+nodeButtonAddToCart.addEventListener('click', function () {
 
-let idProduit = getUrlParametre(urlActuelle, "id");
+    let couleurChoisie = nodeSelectBoxCouleurProduit.value;
+    let quantiteChoisie = parseInt(nodeQuantity.value);
 
-getInfosProduit(idProduit).then((informations) => {
+    console.log(quantiteChoisie);
+
+    if(couleurChoisie === "" || quantiteChoisie < 1) {
+        return window.alert('Merci de sélectionner une couleur et une quantité de canapé.');
+    }
+    else{
+        return ajouterArticle(idProduit, couleurChoisie, quantiteChoisie); 
+    }
+}, false);
+
+callApi(urlApiProduit).then((produit) => {
     nodeButtonAddToCart.disabled = false;
-    console.log('objet: '+informations);
-    appendProductInfosToPage(informations);
-    nodeButtonAddToCart.addEventListener('click', ajoutPanier(idProduit));
+    appendProductInfosToPage(produit);
 });

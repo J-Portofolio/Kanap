@@ -1,7 +1,9 @@
-const BlocProduits = document.querySelector('#items');
-const urlPageProduits = "./product.html?id=";
+const blocProduits = document.querySelector('#items');
 
-function appendProductToPage(objetProduit) {
+const urlPageProduits = "./product.html?id=";
+const urlApiProduits = "http://localhost:3000/api/products";
+
+async function appendProductToPage(objetProduit) {
     let nodeLien = document.createElement("a");
     let nodeArticle = document.createElement("article");
     let nodeHeader = document.createElement("h3");
@@ -22,23 +24,24 @@ function appendProductToPage(objetProduit) {
 
     nodeLien.append(nodeArticle);
 
-    BlocProduits.append(nodeLien);
+    blocProduits.append(nodeLien);
 
 }
 
-async function getProduits() {
-    let reponse = await fetch('http://localhost:3000/api/products');
+async function callApi(url) {
+    let reponse = await fetch(url);
 
     if (reponse.ok) {
-        let resultats = await reponse.json();
-        console.log(resultats);
-        for(resultat of resultats) {
-            appendProductToPage(resultat);
-        }
+        let resultat = await reponse.json();
+        return resultat;
     }
     else {
         return false;
     }
 }
 
-getProduits();
+callApi(urlApiProduits).then((produits) => {
+    for(produit of produits) {
+        appendProductToPage(produit);
+    }
+});
