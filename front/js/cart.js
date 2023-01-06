@@ -42,7 +42,9 @@ function modifierPanier(id, couleur, quantite){
 
     articles.forEach(function (article) {
         if (article.id === id && article.couleur === couleur) {
-            if (quantite === 0) {
+            console.log("article trouvé");
+            if (parseInt(quantite) === 0) {
+                console.log("quantité à zéro");
                 articles.splice(article, 1);
             }
             else{
@@ -51,7 +53,47 @@ function modifierPanier(id, couleur, quantite){
         }
     });
 
-    localStorage.setItem('panier', JSON.stringify(articles));
+    if (articles.length === 0) {
+        localStorage.removeItem('panier');
+    }
+    else {
+        localStorage.setItem('panier', JSON.stringify(articles));
+    }
+}
+
+function validationChamp(elementInput) {
+    let message = '';
+
+    // Vérification de true car retourné par les contraintes de validation de champ de formulaire
+    // si l'un des états testés est avéré.
+    switch(true) {
+        case elementInput.value.trim().length < 1:
+            console.log("Valeur manquante: "+elementInput.name);
+            message = 'Ce champ est requis';
+            break;
+
+        case elementInput.validity.typeMismatch:
+            if (elementInput.type === 'email') {
+                console.log("Format incorrect: "+elementInput.name);
+                message = 'L\'adresse email doit être au format "exemple@exemple.domaine"';
+            }
+            break;
+
+        case elementInput.name === 'firstName' || elementInput.name === 'lastName' || elementInput.name === 'city':
+            if(/^[a-zA-Z ]+$/.test(elementInput.value) === false){
+                message = 'Ce champ ne doit contenir que des lettres';
+            }
+            break;
+
+        case elementInput.name === 'address':
+            console.log(elementInput.name);
+            if(/^[0-9].+[a-zA-Z]$/.test(elementInput.value) === false){
+                message = 'L\'adresse doit commencer par un numéro de voie et terminer par un nom de voie';
+            }
+            break;
+    }
+
+    document.getElementById(`${elementInput.name}ErrorMsg`).innerText = message;
 }
 
 // Déclaration de fonction de promesse systématiquement nécessaire.
@@ -67,7 +109,7 @@ async function loadExternalScript(url) {
     });
 }
 
-async function calculPanier(tableauPanier){
+async function calculPanier(){
     let prixTotalPanier = 0;
     let quantiteTotalePanier = 0;
 
@@ -89,8 +131,8 @@ async function calculPanier(tableauPanier){
         carteArticle.querySelector('.cart__item__content__description p:last-child').innerText = `${sousTotalArticle} €`;
 
         // Le calcul du prix / quantité total du panier est ainsi réalisé et incrémenté sur une base de 0
-        prixTotalPanier = prixTotalPanier + sousTotalArticle;
-        quantiteTotalePanier = quantiteTotalePanier + quantiteArticle;
+        prixTotalPanier += sousTotalArticle;
+        quantiteTotalePanier += quantiteArticle;
     }
 
     // Cela permet de fournir une information correcte au visiteur en toute circonstance
@@ -101,21 +143,60 @@ async function calculPanier(tableauPanier){
     conteneurTotauxPanier.style.display = 'block';
 }
 
-async function commande(formulaire) {
-    let objetContact = new Object;
+async function commande(formulaire, tableauID) {
 
-    for(const champ of formulaire) {
-        let cle = champ.name;
-        let valeur = champ.value;
+    const objetCommande = {
+        contact : {
+            firstName : formulaire.firstName.value,
+            lastName : formulaire.lastName.value,
+            address : formulaire.address.value,
+            city : formulaire.city.value,
+            email : formulaire.email.value
+        },
+        products : tableauID
+    };
+    console.log(objetCommande);
 
-        objetContact[cle] = valeur;
-    }
-    const numeroCommande = await callApi(URL_API_COMMANDE, 'POST', objetContact);
+    const numeroCommande = await callApi(URL_API_COMMANDE, 'POST', objetCommande);
     return numeroCommande;
 }
 
 document.querySelector('#cartAndFormContainer h1').innerHTML = 'Votre panier est vide';
 document.querySelector('section.cart').style.display = 'none';
+
+// Désactivation de la validation par défaut, via navigateur, du formulaire
+conteneurFormulaire.noValidate = true;
+
+for (const champ of conteneurFormulaire.querySelectorAll("input:not([type='submit'])")) {
+    champ.addEventListener('change', function(){
+        validationChamp(champ);
+    });
+}
+conteneurFormulaire.addEventListener('submit', function(evenement) {
+    evenement.preventDefault();
+    
+    for (const champ of conteneurFormulaire.querySelectorAll("input:not([type='submit'])")) {
+        validationChamp(champ);
+    }
+    
+    if (conteneurFormulaire.checkValidity() === true) {
+        const panier = getLocalStorageObject('panier');
+        let tableauIdProduits = new Array;
+
+        for (const article of panier) {
+            tableauIdProduits.push(article.id);
+        }
+        console.log(tableauIdProduits);
+        commande(conteneurFormulaire, tableauIdProduits).then((reponse) => {
+            if (reponse === false) {
+                console.log("C'est non !");
+            }
+            else {
+                document.location.href =`confirmation.html?id=${reponse.orderId}`;
+            }
+        });
+    }
+});
 
 // Avant tout appel dépendant des fonctions du fichier helpers.js,
 // il est nécessaire de s'assurer qu'il est complètement injecté dans la page.
@@ -133,7 +214,7 @@ loadExternalScript(urlScriptHelpers).then(() => {
                 // pour alimenter ensuite le contenu HTML.
                 resultat.id = article.id;
                 resultat.quantiteChoisie = parseInt(article.quantite);
-                resultat.couleurChoisie = article.couleur;
+                resultat.couleurChoisie = couleurEnToFr(article.couleur);
                 appendArticleHtml(resultat);
         }));
         
@@ -155,27 +236,17 @@ loadExternalScript(urlScriptHelpers).then(() => {
         if (evenement.target.name === "itemQuantity") {
             // Le noeud HTML de type "article" parent de la quantité / suppression cliquée  sera utilisée comme "point de référence"
             // afin d'établir les sélecteurs suivants
-            let conteneurArticle = evenement.target.closest('article.cart__item');
-            let idArticle = conteneurArticle.dataset.id;
-            let couleurArticle = conteneurArticle.dataset.color;
-            let quantiteArticle = evenement.target.value;
+            const conteneurArticle = evenement.target.closest('article.cart__item');
+            const donneesArticle = evenement.target.closest('article.cart__item').dataset;
+            const quantiteArticle = evenement.target.value;
 
-            modifierPanier(idArticle, couleurArticle, quantiteArticle);
-            calculPanier();
-        }
-    });
-
-    conteneurArticles.addEventListener("click", function(evenement) {
-        if (evenement.target.className === "deleteItem") {
-            let conteneurArticle = evenement.target.closest('article.cart__item');
-            let idArticle = conteneurArticle.dataset.id;
-            let couleurArticle = conteneurArticle.dataset.color;
-            let quantiteArticle = 0;
-
-            modifierPanier(idArticle, couleurArticle, quantiteArticle);
-            conteneurArticle.remove();
-
+            modifierPanier(donneesArticle.id, donneesArticle.color, quantiteArticle);
             const panier = getLocalStorageObject('panier');
+
+            if (parseInt(quantiteArticle) === 0) {
+                conteneurArticle.remove();
+            }
+
             if(panier.length > 0) {
                 calculPanier();
             }
@@ -186,20 +257,23 @@ loadExternalScript(urlScriptHelpers).then(() => {
         }
     });
 
-    conteneurFormulaire.addEventListener("submit", function(evenement) {
-        console.log("Formulaire trigger")
-        evenement.preventDefault();
-        for (const champ of conteneurFormulaire) {
+    conteneurArticles.addEventListener("click", function(evenement) {
+        if (evenement.target.className === "deleteItem") {
+            const conteneurArticle = evenement.target.closest('article.cart__item');
+            const donneesArticle = conteneurArticle.dataset;
 
-            console.log(champ.name);
-            console.log(champ.value);
-            champ.addEventListener("invalid", function () {
-                if (champ.validity.valid === false) {
-                    alert("Données non valides");
-                    return false;
-                }
-            });
+            modifierPanier(donneesArticle.id, donneesArticle.color, 0);
+            const panier = getLocalStorageObject('panier');
+            
+            conteneurArticle.remove();
+
+            if(panier.length > 0) {
+                calculPanier();
+            }
+            else {
+                document.querySelector('#cartAndFormContainer h1').innerHTML = 'Votre panier est vide';
+                document.querySelector('section.cart').style.display = 'none';
+            }
         }
-        commande(conteneurFormulaire);
     });
 })

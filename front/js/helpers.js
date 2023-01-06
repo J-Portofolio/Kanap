@@ -28,7 +28,7 @@ const DICT_EN_TO_FR = {
 
 // Fonction permettant de traduire les couleurs Anglaises retournées par l'Api
 function couleurEnToFr(Encolor) {
-    let couleurFr = DICT_EN_TO_FR.colors[Encolor];
+    const couleurFr = DICT_EN_TO_FR.colors[Encolor];
     if(typeof couleurFr === undefined) {
         return Encolor;
     }
@@ -52,18 +52,31 @@ function getLocalStorageObject(cle) {
 }
 
 async function callApi(url, methode = 'GET', objet = null) {
-    let reponse = await fetch(url, {
-        method: methode,
-        objet
-    });
+    let reponse;
 
-    if (reponse.ok) {
-        let resultat = await reponse.json();
-        return resultat;
+    if (methode === 'POST') {
+        reponse = await fetch(url, {
+            method: methode,
+            headers: {
+                'Accept': 'application/json',
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(objet)
+        });
+    }
+    else {
+        reponse = await fetch(url, {
+            method: methode
+        });
+    }
+
+    if(reponse.ok) {
+        return await reponse.json();
     }
     else {
         return false;
     }
+
 }
 
 async function getInfosProduits(id = null) {

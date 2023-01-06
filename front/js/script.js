@@ -8,11 +8,11 @@ const blocProduits = document.querySelector('#items');
 // l'import de fonctions réutilisables est effectué via une promesse sur la partie front et via la partie front.
 async function loadExternalScript(url) {
     return new Promise(function(resolve, reject) {
-      var script = document.createElement("script");
-      script.src = url;
-      script.onload = resolve;
-      script.onerror = () => reject(new Error(`Erreur au chargement de: ${url}!`));
-      document.body.appendChild(script);
+        var script = document.createElement("script");
+        script.src = url;
+        script.onload = resolve;
+        script.onerror = () => reject(new Error(`Erreur au chargement de: ${url}!`));
+        document.body.appendChild(script);
     });
 }
 

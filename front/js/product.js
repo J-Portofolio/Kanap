@@ -38,7 +38,7 @@ function appendProductInfosToPage(objetProduit){
 
     for(color of objetProduit.colors) {
         let couleurTraduite = couleurEnToFr(color);
-        let nodeOption = `<option value="${couleurTraduite}">${couleurTraduite}</option>`;
+        let nodeOption = `<option value="${color}">${couleurTraduite}</option>`;
 
         nodeSelectBoxCouleurProduit.innerHTML += nodeOption;
     }
@@ -81,8 +81,8 @@ loadExternalScript(urlScriptHelpers).then(() => {
 
     document.querySelector('.item__content__addButton').insertAdjacentHTML('afterend','<p id="confirmationAjout" style="text-align: center;"></p>');
 
-    nodeButtonAddToCart.addEventListener('click', function (evenement) {
-        let couleurChoisie = evenement.value;
+    nodeButtonAddToCart.addEventListener('click', function () {
+        let couleurChoisie = nodeSelectBoxCouleurProduit.value;
         let quantiteChoisie = parseInt(nodeQuantity.value);
     
         if(couleurChoisie === "" || quantiteChoisie < 1) {
