@@ -80,14 +80,14 @@ function validationChamp(elementInput) {
             break;
 
         case elementInput.name === 'firstName' || elementInput.name === 'lastName' || elementInput.name === 'city':
-            if(/^[a-zA-Z ]+$/.test(elementInput.value) === false){
-                message = 'Ce champ ne doit contenir que des lettres';
+            if(/^[a-zA-Z\u0080-\u024F\s\/\-\)\(\`\.\"\']+$/.test(elementInput.value) === false){
+                message = 'Ce champ ne doit contenir que des lettres (Apostrophes et tirets autorisés)';
             }
             break;
 
         case elementInput.name === 'address':
             console.log(elementInput.name);
-            if(/^[0-9].+[a-zA-Z]$/.test(elementInput.value) === false){
+            if(/^[0-9].+[a-zA-Z\u0080-\u024F\s\/\-\)\(\`\.\"\']+$/.test(elementInput.value) === false){
                 message = 'L\'adresse doit commencer par un numéro de voie et terminer par un nom de voie';
             }
             break;

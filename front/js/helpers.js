@@ -58,8 +58,7 @@ async function callApi(url, methode = 'GET', objet = null) {
         reponse = await fetch(url, {
             method: methode,
             headers: {
-                'Accept': 'application/json',
-                "Content-Type": "application/json",
+                "Content-Type": "application/json"
             },
             body: JSON.stringify(objet)
         });
