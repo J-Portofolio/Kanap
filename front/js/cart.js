@@ -41,10 +41,10 @@ function modifierPanier(id, couleur, quantite){
     let articles = getLocalStorageObject('panier');
 
     articles.forEach(function (article) {
-        if (article.id === id && article.couleur === couleur) {
-            console.log("article trouvé");
-            if (parseInt(quantite) === 0) {
-                console.log("quantité à zéro");
+        // La couleur passée en paramètre est la couleur affichée à l'écran (La vf)
+        // Pour le test d'égalité, une trad est donc nécessaire.
+        if (article.id === id && couleurEnToFr(article.couleur) === couleur) {
+            if (quantite === 0) {
                 articles.splice(article, 1);
             }
             else{
@@ -68,13 +68,11 @@ function validationChamp(elementInput) {
     // si l'un des états testés est avéré.
     switch(true) {
         case elementInput.value.trim().length < 1:
-            console.log("Valeur manquante: "+elementInput.name);
             message = 'Ce champ est requis';
             break;
 
         case elementInput.validity.typeMismatch:
             if (elementInput.type === 'email') {
-                console.log("Format incorrect: "+elementInput.name);
                 message = 'L\'adresse email doit être au format "exemple@exemple.domaine"';
             }
             break;
@@ -86,7 +84,6 @@ function validationChamp(elementInput) {
             break;
 
         case elementInput.name === 'address':
-            console.log(elementInput.name);
             if(/^[0-9].+[a-zA-Z\u0080-\u024F\s\-\`\']+$/.test(elementInput.value) === false){
                 message = 'L\'adresse doit commencer par un numéro de voie et terminer par un nom de voie';
             }
@@ -155,12 +152,11 @@ async function commande(formulaire, tableauID) {
         },
         products : tableauID
     };
-    console.log(objetCommande);
-
     const numeroCommande = await callApi(URL_API_COMMANDE, 'POST', objetCommande);
     return numeroCommande;
 }
 
+document.title = 'Panier';
 document.querySelector('#cartAndFormContainer h1').innerHTML = 'Votre panier est vide';
 document.querySelector('section.cart').style.display = 'none';
 
@@ -186,12 +182,12 @@ conteneurFormulaire.addEventListener('submit', function(evenement) {
         for (const article of panier) {
             tableauIdProduits.push(article.id);
         }
-        console.log(tableauIdProduits);
         commande(conteneurFormulaire, tableauIdProduits).then((reponse) => {
             if (reponse === false) {
-                console.log("C'est non !");
+                alert('Un problème a été rencontré durant la commande de vos articles. Veuillez vous rapprocher du support.');
             }
             else {
+                localStorage.removeItem('panier');
                 document.location.href =`confirmation.html?id=${reponse.orderId}`;
             }
         });
@@ -213,7 +209,7 @@ loadExternalScript(urlScriptHelpers).then(() => {
                 // Autant utiliser cet objet en n'y ajoutant que l'ID et la quantité / couleur sélectionnée par le client
                 // pour alimenter ensuite le contenu HTML.
                 resultat.id = article.id;
-                resultat.quantiteChoisie = parseInt(article.quantite);
+                resultat.quantiteChoisie = Number(article.quantite);
                 resultat.couleurChoisie = couleurEnToFr(article.couleur);
                 appendArticleHtml(resultat);
         }));
@@ -238,12 +234,12 @@ loadExternalScript(urlScriptHelpers).then(() => {
             // afin d'établir les sélecteurs suivants
             const conteneurArticle = evenement.target.closest('article.cart__item');
             const donneesArticle = evenement.target.closest('article.cart__item').dataset;
-            const quantiteArticle = evenement.target.value;
+            const quantiteArticle = Number(evenement.target.value);
 
             modifierPanier(donneesArticle.id, donneesArticle.color, quantiteArticle);
             const panier = getLocalStorageObject('panier');
 
-            if (parseInt(quantiteArticle) === 0) {
+            if (quantiteArticle === 0) {
                 conteneurArticle.remove();
             }
 
